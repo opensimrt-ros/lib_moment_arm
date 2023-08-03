@@ -1,0 +1,17 @@
+31
+32
+33
+37
+74
+75
+76
+80
+med_gas_r: 31
+lat_gas_r: 32
+soleus_r: 33
+tib_ant_r: 37
+med_gas_l: 74
+lat_gas_l: 75
+soleus_l: 76
+tib_ant_l: 80
+
