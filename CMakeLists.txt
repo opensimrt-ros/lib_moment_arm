@@ -105,7 +105,7 @@ add_custom_target(generate_cpp
 file(GLOB sources src/MomentArm.cpp)
 
 # dynamic library
-set(target Gait19xxMomentArm)
+set(target Gait2392MomentArm_RW)
 addLibrary(
   KIT ${target}
   SOURCES ${sources}
