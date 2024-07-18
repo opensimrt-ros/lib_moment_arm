@@ -89,45 +89,44 @@ include_directories(
 #   ${catkin_LIBRARIES}
 # )
 
-file(GLOB includes MomentArm.h MomentArmExports.h)
-file(GLOB tests
-  # sometimes this produces seg fault during CI
-  TestMomentArm.cpp
+set(subject_list "03")
+#set(subject_list "02" "03" "04" )
+
+set(model gait2392)
+
+foreach(subject IN LISTS subject_list)
+	message(parsing ${subject})
+	set (file "generated_src/${model}MomentArm_${subject}.cpp"
 )
+	add_custom_command(
+	    OUTPUT 	${file}    
+	    COMMAND python3 symbolic_moment_arm_v40.py ${subject} ${model} ${CATKIN_DEVEL_PREFIX}/${CATKIN_PACKAGE_LIB_DESTINATION}
+	    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+	    VERBATIM
+	)
+	add_library(${model}MomentArmLib_${subject} ${file})
 
-# Custom target to generate the CPP file using the Python script
-# this should generate the file MomentArm.cpp in the future, right now it generates a hello world
-add_custom_target(generate_cpp
-    COMMAND python moment_arm_code_generator.py
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-)
+	
+	include_directories(include)
+	add_dependencies(${model}MomentArmLib_${subject} ${OpenSim_LIBRARIES})
+	set_target_properties( ${model}MomentArmLib_${subject} 
+		PROPERTIES LINKER_LANGUAGE CXX PREFIX "")
+	#add_dependencies(${target} generate_${subject}cpp)
 
-file(GLOB sources src/MomentArm.cpp)
+	#############
+	## Testing ##
+	#############
 
-# dynamic library
-set(target Gait2392MomentArm_RW)
-addLibrary(
-  KIT ${target}
-  SOURCES ${sources}
-  INCLUDES ${includes}
-  LINKLIBS ${OpenSim_LIBRARIES})
-set_target_properties(${target} PROPERTIES LINKER_LANGUAGE CXX PREFIX "")
+	## Add gtest based cpp test target and link libraries
+	# catkin_add_gtest(${PROJECT_NAME}-test test/test_lib_moment_arm.cpp)
+	# if(TARGET ${PROJECT_NAME}-test)
+	#   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
+	# endif()
 
-add_dependencies(${target} generate_cpp)
-#############
-## Testing ##
-#############
+	## Add folders to be run by python nosetests
+	# catkin_add_nosetests(test)
 
-## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_lib_moment_arm.cpp)
-# if(TARGET ${PROJECT_NAME}-test)
-#   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
-# endif()
-
-## Add folders to be run by python nosetests
-# catkin_add_nosetests(test)
-
-addTests(
-  TESTPROGRAMS ${tests}
-  LINKLIBS ${target} ${OpenSim_LIBRARIES})
-
+	#addTests(
+	#  TESTPROGRAMS ${tests_${subject}}
+	#  LINKLIBS ${target} ${OpenSim_LIBRARIES})
+endforeach()

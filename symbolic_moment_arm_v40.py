@@ -25,6 +25,8 @@ from matplotlib.backends.backend_pdf import PdfPages
 from multipolyfit import multipolyfit, mk_sympy_function
 plt.rcParams['font.size'] = 13
 
+import shutil
+import glob
 
 ################################################################################
 # utilities
@@ -269,7 +271,7 @@ def calculate_moment_arm_symbolically(model_file, results_dir):
 
     # parse csv
     muscle_coordinates = {}
-    with open(results_dir + 'muscle_coordinates.csv') as csv_file:
+    with open(os.path.join(results_dir,'muscle_coordinates.csv')) as csv_file:
         reader = csv.reader(csv_file, delimiter=';')
         for row in reader:
             muscle_coordinates[row[0]] = row[1:]
@@ -340,10 +342,10 @@ def calculate_moment_arm_symbolically(model_file, results_dir):
 
     # export data to file because the process is time consuming
     R = sp.Matrix(R)
-    with open(results_dir + 'R.dat', 'wb') as f_R,\
-         open(results_dir + 'sampling_dict.dat', 'wb') as f_sd,\
-         open(results_dir + 'model_muscles.dat', 'wb') as f_mm,\
-         open(results_dir + 'model_coordinates.dat', 'wb') as f_mc:
+    with open(os.path.join(results_dir,'R.dat'), 'wb') as f_R,\
+         open(os.path.join(results_dir,'sampling_dict.dat'), 'wb') as f_sd,\
+         open(os.path.join(results_dir,'model_muscles.dat'), 'wb') as f_mm,\
+         open(os.path.join(results_dir,'model_coordinates.dat'), 'wb') as f_mc:
         pickle.dump(R, f_R)
         pickle.dump(sampling_dict, f_sd)
         pickle.dump(model_muscles, f_mm)
@@ -421,7 +423,7 @@ def calculate_spanning_muscle_coordinates(model_file, results_dir):
                 key=lambda x: ordered_coordinate_set.index(x))
 
     # write results to file
-    with open(results_dir + 'muscle_coordinates.csv', 'w') as csv_file:
+    with open(os.path.join(results_dir,'muscle_coordinates.csv'), 'w') as csv_file:
         for key, values in muscle_coordinates.items():
             csv_file.write(key)
             for value in values:
@@ -444,7 +446,7 @@ def export_moment_arm_as_c_function(R, model_coordinates,
     RT = R.transpose().subs(symbol_sybstitution)
 
     # header
-    with open(results_dir + file_name + '.h', 'w') as header_file:
+    with open(os.path.join(results_dir, "../include/lib_moment_arm", file_name + '.h'), 'w') as header_file:
         header_file.write('#ifndef MOMENT_ARM_H\n')
         header_file.write('#define MOMENT_ARM_H\n\n')
         header_file.write('#include "MomentArmExports.h"\n')
@@ -470,7 +472,7 @@ def export_moment_arm_as_c_function(R, model_coordinates,
         header_file.write('#endif')
 
     # source
-    with open(results_dir + file_name + '.cpp', 'w') as source_file:
+    with open(os.path.join(results_dir, file_name + '.cpp'), 'w') as source_file:
         source_file.write('#include "lib_moment_arm/' + file_name + '.h"\n\n')
         source_file.write('using namespace SimTK;\n')
         source_file.write('using namespace std;\n\n')
@@ -509,23 +511,37 @@ def export_moment_arm_as_c_function(R, model_coordinates,
         source_file.write('    return R;\n')
         source_file.write('}\n')
 
+
+
 ################################################################################
 # main
 
 # def main():
 
 # model
-subject_dir = os.path.abspath('./')
-model_file = os.path.join(subject_dir,
-                          'gait2392_simbody_RW.osim')
-results_dir = os.path.join(subject_dir, 'moment_arm/')
+
+import argparse
+parser = argparse.ArgumentParser(description='Process some subj.')
+parser.add_argument('subject')
+parser.add_argument('model')   
+parser.add_argument('destination')
+args = parser.parse_args()
+
+
+models_dir = os.path.abspath('/srv/host_data/models')
+model_file = os.path.join(models_dir,
+                          f'{args.model}_Subject_{args.subject}.osim')
+results_dir = os.path.abspath(args.destination)
+local_copy_of_library_code = os.path.abspath("./generated_src")
+
+print(model_file)
 
 # read opensim files
 if not os.path.isfile(model_file):
-    raise RuntimeError('required files do not exist')
+    raise RuntimeError(f'required model file {model_file} does not exist')
 
 if not os.path.isdir(results_dir):
-    raise RuntimeError('required folders do not exist')
+    raise RuntimeError(f'required folder {results_dir} does not exist')
 
 # when computed once results are stored into files and loaded with
 # (pickle)
@@ -538,10 +554,10 @@ if compute:
 
 
 if True:
-    with open(results_dir + 'R.dat', 'rb') as f_r,\
-         open(results_dir + 'sampling_dict.dat', 'rb') as f_sd,\
-         open(results_dir + 'model_coordinates.dat', 'rb') as f_mc,\
-         open(results_dir + 'model_muscles.dat', 'rb') as f_mm:
+    with open(os.path.join(results_dir,'R.dat'), 'rb') as f_r,\
+         open(os.path.join(results_dir,'sampling_dict.dat'), 'rb') as f_sd,\
+         open(os.path.join(results_dir,'model_coordinates.dat'), 'rb') as f_mc,\
+         open(os.path.join(results_dir,'model_muscles.dat'), 'rb') as f_mm:
         R = pickle.load(f_r)
         sampling_dict = pickle.load(f_sd)
         model_coordinates = pickle.load(f_mc)
@@ -549,10 +565,10 @@ if True:
 
     export_moment_arm_as_c_function(R, model_coordinates, model_muscles,
                                     'MomentArm',
-                                    results_dir + '/code_generation/')
+                                    local_copy_of_library_code)
 
 if visualize:
-    with PdfPages(results_dir + 'compare_moment_arm.pdf') as pdf:
+    with PdfPages(os.path.join(results_dir,'compare_moment_arm.pdf')) as pdf:
         for muscle in sampling_dict.keys():
             coordinates = sampling_dict[muscle]['coordinates']
             if len(coordinates) == 1:

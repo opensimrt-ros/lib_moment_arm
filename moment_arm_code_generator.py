@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+import argparse
+
 
 cpp_code = """
 #include <iostream>
@@ -9,5 +11,33 @@ int main() {
 }
 """
 
-with open("generated_moment_arm.cpp", "w") as file:
+parser = argparse.ArgumentParser(description='Process some subj.')
+parser.add_argument('subject')
+parser.add_argument('model')   
+
+
+
+
+args = parser.parse_args()
+
+
+print(args)
+
+print("-----------------------------------------")
+print("-----------------------------------------")
+print("-----------------------------------------")
+print("-----------------------------------------")
+print("-----------------------------------------")
+print("-----------------------------------------")
+print("-----------------------------------------")
+print("-----------------------------------------")
+print("-----------------------------------------")
+print("-----------------------------------------")
+print("-----------------------------------------")
+print("-----------------------------------------")
+
+model = args.model
+subject = args.subject
+
+with open(f"{model}MomentArm_{subject}.cpp", "w") as file:
     file.write(cpp_code)
