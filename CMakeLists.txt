@@ -5,7 +5,7 @@ set( CMAKE_EXPORT_COMPILE_COMMANDS ON )
 ## Compile as C++11, supported in ROS Kinetic and newer
 add_compile_options(-std=c++11 -O3)
 
-set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
+set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake" "/opt/dependencies")
 include(cmake/CMakeHelpers.cmake)
 
 ## Find catkin macros and libraries
@@ -16,11 +16,30 @@ find_package(catkin REQUIRED COMPONENTS
 )
 
 ## System dependencies are found with CMake's conventions
-find_package(OpenSim) 
-find_package(simbody)
+#find_package(OpenSim REQUIRED) 
+
+#find_package(OpenSim )
+
+find_package(OpenSim REQUIRED PATHS "${OPENSIM_HOME}"
+		simbody
+	)
+
+message(NOTICE "============\nLIBMOMENTARM:OpenSim")
+message(STATUS
+	${OpenSim_INCLUDE_DIRS}
+
+	)
+
+
+find_package(simbody )
+
 ## I wonder if catkin does this for me.
-include_directories(${OpenSim_INCLUDE_DIRS})
-link_directories(${OpenSim_LIB_DIR})
+include_directories(${OpenSim_INCLUDE_DIRS}
+	${catkin_INCLUDE_DIRS}
+	/opt/dependencies/opensim-core/include/
+	)
+
+link_directories(${OpenSim_LIB_DIR} ${catkin_LIBRARIES} )
 
 set(CMAKE_RELEASE_POSTFIX "" CACHE STRING "Release postfix")
 set(CMAKE_DEBUG_POSTFIX "" CACHE STRING "Debug postfix")
@@ -42,10 +61,10 @@ mark_as_advanced(CMAKE_MINSIZEREL_POSTFIX)
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
+  INCLUDE_DIRS include
 #  LIBRARIES lib_moment_arm
-#  CATKIN_DEPENDS Opensim roscpp
-#  DEPENDS system_lib
+  CATKIN_DEPENDS Opensim roscpp
+  DEPENDS OpenSim
 )
 
 ###########
@@ -89,27 +108,40 @@ include_directories(
 #   ${catkin_LIBRARIES}
 # )
 
-set(subject_list "03")
+set(models_dir "/srv/host_data/models")
 #set(subject_list "02" "03" "04" )
 
-set(model gait2392)
+file(GLOB models "${models_dir}/*.osim")
 
-foreach(subject IN LISTS subject_list)
-	message(parsing ${subject})
-	set (file "generated_src/${model}MomentArm_${subject}.cpp"
+foreach(m ${models})
+	message("\n---------------------------------------------------- ${m}----------------------------------------------------------------- \n")
+endforeach()
+
+foreach(model ${models})
+	message(parsing ${model})
+	get_filename_component(base ${model} NAME_WE)
+	set (file "${CMAKE_CURRENT_SOURCE_DIR}/src/${base}MomentArm_generated.cpp"
 )
+	message(cpp file will be writen to ${file})
 	add_custom_command(
 	    OUTPUT 	${file}    
-	    COMMAND python3 symbolic_moment_arm_v40.py ${subject} ${model} ${CATKIN_DEVEL_PREFIX}/${CATKIN_PACKAGE_LIB_DESTINATION}
+	    COMMAND python3 symbolic_moment_arm_v40.py 
+	    --model=${model} 
+	    --results_destination=${CATKIN_DEVEL_PREFIX}/share/${PROJECT_NAME}
 	    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 	    VERBATIM
 	)
-	add_library(${model}MomentArmLib_${subject} ${file})
+	add_library(libMomentArm_${base} ${file})
 
 	
-	include_directories(include)
-	add_dependencies(${model}MomentArmLib_${subject} ${OpenSim_LIBRARIES})
-	set_target_properties( ${model}MomentArmLib_${subject} 
+	include_directories(include
+		${catkin_INCLUDE_DIRS}
+		${OpenSim_INCLUDE_DIRS}
+		/opt/dependencies/opensim-core/include/simbody
+
+		)
+	#add_dependencies(libMomentArm_${base} ${OpenSim_LIBRARIES})
+	set_target_properties( libMomentArm_${base} 
 		PROPERTIES LINKER_LANGUAGE CXX PREFIX "")
 	#add_dependencies(${target} generate_${subject}cpp)
 

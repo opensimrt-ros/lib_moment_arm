@@ -1,1 +1,3 @@
-generated_moment_arm.cpp
+*generated.cpp
+*generated.h
+*.log

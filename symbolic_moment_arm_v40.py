@@ -199,11 +199,13 @@ def visualize_moment_arm(moment_arm_coordinate, muscle, coordinates,
              model_coordinates[moment_arm_coordinate]]
     moment_arm_poly = np.array([
         poly.subs(dict(zip([sp.Symbol(coord) for coord in coordinates], x)))
-        for x in sampling_grid], np.float)
+        for x in sampling_grid], np.float64)
 
     # RMSE
     rmse = np.round(np.sqrt(np.mean((100.0 * moment_arm[:, idx] -
                                      100.0 * moment_arm_poly) ** 2)), 5)
+    
+    ##TODO: we want to add this to the pdf as well
     print('Moment arm RMSE = ' + str(rmse).ljust(8) +
           'for ' + muscle + '@' + moment_arm_coordinate +
           '(' + str(coordinates).strip('[]') + ')')
@@ -434,7 +436,7 @@ def calculate_spanning_muscle_coordinates(model_file, results_dir):
 
 def export_moment_arm_as_c_function(R, model_coordinates,
                                     model_muscles, file_name,
-                                    results_dir):
+                                    package_own_directory):
     """Exports the moment arm matrix R [coordinates x muscles] as a
     callable functions of the coordinate positions.
 
@@ -446,7 +448,7 @@ def export_moment_arm_as_c_function(R, model_coordinates,
     RT = R.transpose().subs(symbol_sybstitution)
 
     # header
-    with open(os.path.join(results_dir, "../include/lib_moment_arm", file_name + '.h'), 'w') as header_file:
+    with open(os.path.join(package_own_directory, "include/lib_moment_arm", file_name + '.h'), 'w') as header_file:
         header_file.write('#ifndef MOMENT_ARM_H\n')
         header_file.write('#define MOMENT_ARM_H\n\n')
         header_file.write('#include "MomentArmExports.h"\n')
@@ -472,7 +474,7 @@ def export_moment_arm_as_c_function(R, model_coordinates,
         header_file.write('#endif')
 
     # source
-    with open(os.path.join(results_dir, file_name + '.cpp'), 'w') as source_file:
+    with open(os.path.join(package_own_directory, "src", file_name + '.cpp'), 'w') as source_file:
         source_file.write('#include "lib_moment_arm/' + file_name + '.h"\n\n')
         source_file.write('using namespace SimTK;\n')
         source_file.write('using namespace std;\n\n')
@@ -522,35 +524,39 @@ def export_moment_arm_as_c_function(R, model_coordinates,
 
 import argparse
 parser = argparse.ArgumentParser(description='Process some subj.')
-parser.add_argument('subject')
-parser.add_argument('model')   
-parser.add_argument('destination')
+parser.add_argument("-s","--subject",dest='subject')
+parser.add_argument("-m","--model",dest='model')   
+parser.add_argument("-r","--results_destination",dest='results_destination')
+parser.add_argument("-d","--model_source_dir",dest='model_source_dir')
 args = parser.parse_args()
 
 
-models_dir = os.path.abspath('/srv/host_data/models')
-model_file = os.path.join(models_dir,
-                          f'{args.model}_Subject_{args.subject}.osim')
-results_dir = os.path.abspath(args.destination)
-local_copy_of_library_code = os.path.abspath("./generated_src")
+models_dir = os.path.dirname(args.model)
 
-print(model_file)
+model_file = os.path.basename(args.model)
+
+model_base_name,  _ = os.path.splitext(model_file)
+
+results_dir = os.path.join(args.results_destination, model_base_name)
+if not os.path.exists(results_dir):
+    os.makedirs(results_dir)
+package_own_directory = os.path.abspath("./")
+
+print(args.model)
 
 # read opensim files
-if not os.path.isfile(model_file):
-    raise RuntimeError(f'required model file {model_file} does not exist')
+if not os.path.isfile(args.model):
+    raise RuntimeError(f'required model file {args.model} does not exist')
 
-if not os.path.isdir(results_dir):
-    raise RuntimeError(f'required folder {results_dir} does not exist')
 
 # when computed once results are stored into files and loaded with
 # (pickle)
-compute = True
-visualize = False
+compute = True #Slow
+visualize = False ##Super slow
 
 if compute:
-    calculate_spanning_muscle_coordinates(model_file, results_dir)
-    calculate_moment_arm_symbolically(model_file, results_dir)
+    calculate_spanning_muscle_coordinates(args.model, results_dir)
+    calculate_moment_arm_symbolically(args.model, results_dir)
 
 
 if True:
@@ -564,8 +570,8 @@ if True:
         model_muscles = pickle.load(f_mm)
 
     export_moment_arm_as_c_function(R, model_coordinates, model_muscles,
-                                    'MomentArm',
-                                    local_copy_of_library_code)
+                                    f'{model_base_name}MomentArm_generated',
+                                    package_own_directory)
 
 if visualize:
     with PdfPages(os.path.join(results_dir,'compare_moment_arm.pdf')) as pdf:
