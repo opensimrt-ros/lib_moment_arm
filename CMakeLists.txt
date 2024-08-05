@@ -111,7 +111,9 @@ include_directories(
 set(models_dir "/srv/host_data/models")
 #set(subject_list "02" "03" "04" )
 
-file(GLOB models "${models_dir}/*.osim")
+file(GLOB models CONFIGURE_DEPENDS "${models_dir}/*.osim")
+
+
 
 foreach(m ${models})
 	message("\n---------------------------------------------------- ${m}----------------------------------------------------------------- \n")
