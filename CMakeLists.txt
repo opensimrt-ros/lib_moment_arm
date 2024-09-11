@@ -1,28 +1,28 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.15)
 project(lib_moment_arm)
 set( CMAKE_EXPORT_COMPILE_COMMANDS ON )
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 add_compile_options(-std=c++11 -O3)
 
-set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake" "/opt/dependencies")
-include(cmake/CMakeHelpers.cmake)
+#include(cmake/CMakeHelpers.cmake)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
+find_package(OpenSim REQUIRED)
+find_package(casadi REQUIRED)
+#find_package(coin-or REQUIRED)
+#find_package(simbody REQUIRED PATHS /usr/local/include/simbody)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
 )
 
 ## System dependencies are found with CMake's conventions
-#find_package(OpenSim REQUIRED) 
 
-#find_package(OpenSim )
-
-find_package(OpenSim REQUIRED PATHS "${OPENSIM_HOME}"
-		simbody
-	)
+#find_package(OpenSim REQUIRED
+#		simbody
+#	)
 
 message(NOTICE "============\nLIBMOMENTARM:OpenSim")
 message(STATUS
@@ -30,13 +30,18 @@ message(STATUS
 
 	)
 
-
-find_package(simbody )
+catkin_package(INCLUDE_DIRS 
+   include
+#  LIBRARIES lib_moment_arm
+  CATKIN_DEPENDS roscpp
+  DEPENDS OpenSim
+)
 
 ## I wonder if catkin does this for me.
 include_directories(${OpenSim_INCLUDE_DIRS}
 	${catkin_INCLUDE_DIRS}
-	/opt/dependencies/opensim-core/include/
+	#${simbody_INCLUDE_DIRS}
+	/opt/dependencies/
 	)
 
 link_directories(${OpenSim_LIB_DIR} ${catkin_LIBRARIES} )
@@ -60,12 +65,6 @@ mark_as_advanced(CMAKE_MINSIZEREL_POSTFIX)
 ## LIBRARIES: libraries you create in this project that dependent projects also need
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
-catkin_package(
-  INCLUDE_DIRS include
-#  LIBRARIES lib_moment_arm
-  CATKIN_DEPENDS Opensim roscpp
-  DEPENDS OpenSim
-)
 
 ###########
 ## Build ##
@@ -139,8 +138,7 @@ foreach(model ${models})
 	include_directories(include
 		${catkin_INCLUDE_DIRS}
 		${OpenSim_INCLUDE_DIRS}
-		/opt/dependencies/opensim-core/include/simbody
-
+		/usr/local/include/simbody #I totally shouldnt have to do this... well, if you fix it you will feel like a better programmer than me, so you have that going for you, which is nice
 		)
 	#add_dependencies(libMomentArm_${base} ${OpenSim_LIBRARIES})
 	set_target_properties( libMomentArm_${base} 
