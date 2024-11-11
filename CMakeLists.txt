@@ -107,10 +107,10 @@ include_directories(
 #   ${catkin_LIBRARIES}
 # )
 
-set(models_dir "/srv/host_data/models")
+#set(models_dir "/srv/host_data/models")
 #set(subject_list "02" "03" "04" )
 
-file(GLOB models CONFIGURE_DEPENDS "${models_dir}/*.osim")
+file(GLOB models CONFIGURE_DEPENDS "/srv/host_data/models/*.osim")
 
 
 

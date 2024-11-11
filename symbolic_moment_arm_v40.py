@@ -540,7 +540,11 @@ model_base_name,  _ = os.path.splitext(model_file)
 results_dir = os.path.join(args.results_destination, model_base_name)
 if not os.path.exists(results_dir):
     os.makedirs(results_dir)
-package_own_directory = os.path.abspath("./")
+
+import rospkg
+
+rospack = rospkg.RosPack()
+package_own_directory = rospack.get_path("lib_moment_arm")
 
 print(args.model)
 
