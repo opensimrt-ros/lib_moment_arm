@@ -541,10 +541,15 @@ results_dir = os.path.join(args.results_destination, model_base_name)
 if not os.path.exists(results_dir):
     os.makedirs(results_dir)
 
-import rospkg
+#import rospkg
 
-rospack = rospkg.RosPack()
-package_own_directory = rospack.get_path("lib_moment_arm")
+## this doesnt work for some reason
+#rospack = rospkg.RosPack()
+#package_own_directory = rospack.get_path("lib_moment_arm")
+
+import pathlib
+package_own_directory = pathlib.Path(__file__).parent.resolve()
+
 
 print(args.model)
 
